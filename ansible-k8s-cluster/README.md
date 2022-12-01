@@ -4,6 +4,15 @@ K8S Infrastructure Setup 1.24.8
 For Testing Local Environment OR Can Deploy as Production
 ---------------------------------------------------------
 
+Requirement:
+------------
+```
+Ubuntu: 22.04
+ansible: 2.10.x
+python: 3.10.x
+kubernetes: 1.24.x
+```
+
 k8s infrastructure.
 
 ```

@@ -1,15 +1,4 @@
 ---
-# tasks file for roles/init
-# - name: Remove cri plugin config.toml # Kubernetes 1.23.x up
-#   lineinfile:
-#     path: /etc/containerd/config.toml
-#     regexp: '^\s*disabled_plugins.*$'
-#     line: '# disabled_plugins = ["cri"]'
-
-# - name: Restart containerd
-#   systemd:
-#     name: containerd
-#     state: restarted
 
 - name: Pull requirement docker images before init
   shell: kubeadm config images pull

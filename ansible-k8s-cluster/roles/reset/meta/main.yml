@@ -1,9 +1,0 @@
-galaxy_info:
-  author: Visay Keo
-  description: k8s infrastructure setup
-  company: Web Essentials
-  min_ansible_version: 2.5
-  platforms:
-  - name: Ubuntu
-    versions:
-    - bionic
