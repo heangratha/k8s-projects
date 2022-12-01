@@ -1,0 +1,107 @@
+---
+
+- name: Get server code name
+  shell: 'lsb_release -cs'
+  register: codename
+
+- name: Get server architecture
+  shell: 'dpkg --print-architecture'
+  register: dpkg_architecture
+
+- name: Disable swap for current session
+  command: swapoff -a
+
+- name: Disable swap permanently, persist reboots
+  replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+    replace: '#\1\2\3swap\4'
+    backup: yes
+
+- name: Add gpg keyring
+  apt_key:
+    url: '{{ item.src }}'
+    keyring: '/etc/apt/keyrings/{{ item.dest }}'
+  loop:
+    - { src: 'https://download.docker.com/linux/ubuntu/gpg', dest: 'docker.gpg' }
+    - { src: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg', dest: 'kubernetes.gpg' }
+    - { src: 'https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/Release.key', dest: 'libcontainers.gpg' }
+    - { src: 'https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.23/xUbuntu_22.04/Release.key', dest: 'libcontainers-crio.gpg' }    
+
+- name: Add repositories
+  apt_repository:
+    repo: '{{ item.repo }}'
+    filename: '{{ item.name }}'
+    state: present
+    update_cache: yes
+  loop:
+    - { repo: 'deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ codename.stdout }} stable', name: 'docker' }
+    - { repo: 'deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://apt.kubernetes.io/ kubernetes-xenial main', name: 'kubernetes'}
+    - { repo: 'deb [signed-by=/etc/apt/keyrings/libcontainers.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/ /', name: 'libcontainers' }
+    - { repo: 'deb [signed-by=/etc/apt/keyrings/libcontainers-crio.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.23/xUbuntu_22.04/ /', name: 'libcontainers-crio' }
+
+- name: Install requirement packages
+  apt:
+    name: '{{ item }}'
+  loop:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg-agent
+    - software-properties-common
+    - nfs-common # For the node to be able to mount NFS share drive
+
+- name: Install containerd runtime
+  apt:
+    pkg: containerd
+
+- name: Generate config.toml containerd
+  shell: containerd config default > config.toml
+  args:
+    chdir: /etc/containerd
+
+- name: Set SystemdCgroup to true
+  lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^\s*SystemdCgroup.*$'
+    line: '            SystemdCgroup = true'
+
+- name: iptables bridged traffic
+  template:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    mode: 0755
+  loop:
+    - { src: 'module-k8s.conf.j2', dest: '/etc/modules-load.d/k8s.conf' }
+    - { src: 'sysctl-k8s.conf.j2', dest: '/etc/sysctl.d/k8s.conf' }
+
+- name: Update system
+  shell: sysctl --system
+
+- name: Restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+
+- name: Install Kubernetes binaries
+  apt:
+    name: '{{ item }}={{ k8s_version }}'
+    state: present
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+- name: Pin version
+  dpkg_selections:
+    name: '{{ item }}'
+    selection: hold
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+- name: set timezone to Asia/Phnom_Penh
+  timezone:
+    name: Asia/Phnom_Penh
+  changed_when: false

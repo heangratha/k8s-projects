@@ -1,0 +1,6 @@
+---
+
+- name: Install calico network
+  shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/calico.yaml
+  become: false
+  changed_when: false

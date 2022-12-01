@@ -1,0 +1,43 @@
+---
+# tasks file for roles/init
+# - name: Remove cri plugin config.toml # Kubernetes 1.23.x up
+#   lineinfile:
+#     path: /etc/containerd/config.toml
+#     regexp: '^\s*disabled_plugins.*$'
+#     line: '# disabled_plugins = ["cri"]'
+
+# - name: Restart containerd
+#   systemd:
+#     name: containerd
+#     state: restarted
+
+- name: Pull requirement docker images before init
+  shell: kubeadm config images pull
+  changed_when: false
+
+- name: Kubernetes promote master
+  shell: 'kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address={{ ip_controller[0] }}'
+  args:
+    creates: /etc/kubernetes/cluster_initialized.txt
+
+- name: Kubernetes create initialize file
+  file:
+    path: /etc/kubernetes/cluster_initialized.txt
+    state: touch
+
+- name: Create config directory
+  file:
+    path: '/home/{{ ansible_user }}/.kube'
+    state: directory
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: 0755
+
+- name: Copy kubernetes config file
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: '/home/{{ ansible_user }}/.kube/config'
+    remote_src: yes
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: 0600

@@ -1,0 +1,25 @@
+---
+
+all:
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    k8s_version:    '1.24.8-00'
+    calico_version: 'v3.24.5'
+    ip_controller:
+      - '192.168.56.220'
+    ip_workers:
+      - '192.168.56.221'
+
+    containerd_path: '/etc/containerd'
+
+  children:
+    control_plane:
+      hosts:
+        controller-1:
+          ansible_host: '{{ ip_controller[0] }}'
+    workers:
+      hosts:
+        worker-1:
+          ansible_host: '{{ ip_workers[0] }}'
+

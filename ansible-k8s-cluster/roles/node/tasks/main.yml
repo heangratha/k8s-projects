@@ -1,0 +1,5 @@
+---
+# tasks file for roles/node
+
+- name: Join cluster
+  shell: 'kubeadm join --token {{ hostvars["controller-1"]["kubeadm_init_token"] }} {{ ip_controller[0] }}:6443 --discovery-token-ca-cert-hash sha256:{{ hostvars["controller-1"]["kubeadm_init_hash"] }}'

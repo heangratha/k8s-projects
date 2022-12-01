@@ -1,0 +1,10 @@
+---
+# tasks file for roles/reset
+
+- name: Reset cluster
+  shell: kubeadm reset --force
+
+- name: Remove init file
+  file:
+    path: /etc/kubernetes/cluster_initialized.txt
+    state: absent

@@ -1,0 +1,11 @@
+---
+
+- hosts: all
+  gather_facts: false
+  roles:
+    - role: common
+
+- hosts: control_plane
+  roles:
+    - role: init
+    - role: network

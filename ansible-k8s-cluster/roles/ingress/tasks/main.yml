@@ -1,0 +1,22 @@
+---
+
+- name: Copy config files to master
+  template:
+    src: '{{ item }}'
+    dest: '/var/tmp/{{ item }}'
+  loop:
+    - configmap-reloader-0.0.125.yaml
+    - ingress-bear-metal-1.5.1.yaml
+
+- name: Kube apply cm-reload and ingress
+  become: false
+  shell: 'kubectl apply -f {{ item }}'
+  args:
+    chdir: /var/tmp/
+  loop:
+    - configmap-reloader-0.0.125.yaml
+    - ingress-bear-metal-1.5.1.yaml
+
+- name: Replicate ingress controller to all nodes
+  become: false
+  shell: kubectl scale --replicas=3 deployment/ingress-nginx-controller --namespace ingress-nginx
